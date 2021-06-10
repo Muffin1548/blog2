@@ -4,26 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use App\Models\User;
+use App\Repositories\PostRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
 
-    public function userPosts($id)
+    private $postRepository;
+
+    public function __construct()
     {
-        $posts = Post::where('author_id', $id)->where('active', '1')->orderBy('created_at', 'desc')->paginate(5);
-        $tittle = User::find($id)->name;
-        return view('home')->with('posts',$posts)->with('title', $tittle);
+        $this->postRepository = app(PostRepository::class);
     }
 
-    public function userPostsAll(Request $request)
+    public function userPosts($id)
     {
-        $user = $request->user();
-        $posts = Post::where('author_id', $user->id)->orderBy('created_at', 'desc')->paginate(5);
-        $title = $user->name;
-        return view('home')->with('posts',$posts)->with('title', $title);
+        $posts = $this->postRepository->getUserPosts($id);
+        $title = User::find($id)->name;
+
+        return view('home', compact('posts', 'title'));
     }
+
     /**
      * profile for user
      */

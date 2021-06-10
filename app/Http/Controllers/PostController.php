@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Repositories\PostRepository;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 
@@ -10,13 +11,22 @@ use App\Http\Requests\PostFormRequest;
 
 class PostController extends Controller
 {
-    public function index()
+    private $postRepository;
+
+
+    public function __construct()
     {
-        $posts = Post::where('active',1)->orderBy('created_at','desc')->paginate(5);
+        $this->postRepository = app(PostRepository::class);
+    }
+
+    public function index(): string
+    {
+        $posts = $this->postRepository->getIndex();
+        //$posts = Post::where('active',1)->orderBy('created_at','desc')->paginate(5);
 
         $title = 'Latest posts';
-
-        return view('home')->with('posts',$posts)->with('title', $title);
+        //dd($posts);
+        return view('home', compact('posts', 'title'));
     }
 
     public function create(Request $request)
@@ -37,15 +47,15 @@ class PostController extends Controller
 
         $duplicate = Post::where('slug', $post->slug)->first();
 
-        if ($duplicate){
+        if ($duplicate) {
             return redirect('new-post')->withErrors('Title already exists')->withInput();
         }
 
         $post->author_id = $request->user()->id;
-        if($request->has('save')){
+        if ($request->has('save')) {
             $post->active = 0;
             $message = 'Post saved successfully';
-        }else{
+        } else {
             $post->active = 1;
             $message = 'Post published successfully';
         }
@@ -57,20 +67,17 @@ class PostController extends Controller
 
     public function show($slug)
     {
-        $post = Post::where('slug', $slug)->first();
-        if (!$post){
-            return redirect('/');
-        }
+        $post = $this->postRepository->getPost($slug)->first();
         $comments = $post->comments;
 
-        return view('posts.show')->with('post',$post)->with('comments', $comments);
+        return view('posts.show', compact('post', 'comments'));
     }
 
     public function edit(Request $request, $slug)
     {
-        $post = Post::where('slug', $slug)->first();
-        if ($post && ($request ->user()->id == $post->author_id || $request->user()->isAdmin()))
-            return view('posts.edit')->with('post',$post);
+        $post = $this->postRepository->getPost($slug)->first();
+        if ($post && ($request->user()->id == $post->author_id || $request->user()->isAdmin()))
+            return view('posts.edit')->with('post', $post);
         return redirect('/')->withErrors('you have not sufficient permissions');
     }
 
@@ -78,11 +85,11 @@ class PostController extends Controller
     {
         $post_id = $request->input('post_id');
         $post = Post::find($post_id);
-        if ($post && ($post->author_id == $request->user()->id || $request->user()->isAdmin())){
+        if ($post && ($post->author_id == $request->user()->id || $request->user()->isAdmin())) {
             $title = $request->input('title');
             $slug = Str::slug($title);
-            $duplicate = Post::where('slug',$slug)->first();
-            if ($duplicate){
+            $duplicate = Post::where('slug', $slug)->first();
+            if ($duplicate) {
                 return redirect('edit/' . $post->slug)->withErrors('Title already exist')->withInput();
             } else {
                 $post->slug = $slug;
@@ -100,7 +107,7 @@ class PostController extends Controller
                 $landing = $post->slug;
             }
             $post->save();
-            return redirect($landing)->with('message',$message);
+            return redirect($landing)->with('message', $message);
         } else {
             return redirect('/')->withErrors('you have not sufficient permissions');
         }
@@ -109,13 +116,10 @@ class PostController extends Controller
     public function destroy(Request $request, $id)
     {
         $post = Post::find($id);
-        if($post && ($post->author_id == $request->user()->id || $request->user()->is_admin()))
-        {
+        if ($post && ($post->author_id == $request->user()->id || $request->user()->is_admin())) {
             $post->delete();
             $data['message'] = 'Post deleted Successfully';
-        }
-        else
-        {
+        } else {
             $data['errors'] = 'Invalid Operation. You have not sufficient permissions';
         }
         return redirect('/')->with($data);
