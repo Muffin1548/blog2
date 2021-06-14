@@ -3,32 +3,24 @@
 
 namespace App\Repositories;
 
-use App\Models\Post as Model;
+use App\Models\Post;
 
-class PostRepository extends BaseRepository
+class PostRepository
 {
-    /**
-     * @return string
-     *
-     */
-    protected function getModelClass(): string
+    public function index()
     {
-        return Model::class;
+        return Post::where('active', 1)
+            ->orderBy('created_at', 'desc')
+            ->paginate(5);
     }
 
-    public function getIndex()
+    public function show($slug)
     {
-        return $this->startConditions()->all();
+        return Post::where('slug', $slug)->first();
     }
 
-    public function getPost($slug)
+    public function post($post_id)
     {
-        return $this->startConditions()->where("slug", $slug);
-    }
-
-    public function getUserPosts($id)
-    {
-
-        return $this->startConditions()->all()->where('author_id', $id);
+        return Post::find($post_id);
     }
 }

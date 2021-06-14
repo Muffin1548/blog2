@@ -4,49 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use App\Models\User;
-use App\Repositories\PostRepository;
+use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
-
-    private $postRepository;
+    private $userService;
 
     public function __construct()
     {
-        $this->postRepository = app(PostRepository::class);
+        $this->userService = new UserService();
     }
 
     public function userPosts($id)
     {
-        $posts = $this->postRepository->getUserPosts($id);
-        $title = User::find($id)->name;
-
-        return view('home', compact('posts', 'title'));
+        return $this->userService->userPosts($id);
     }
 
-    /**
-     * profile for user
-     */
     public function profile(Request $request, $id)
     {
-        $data['user'] = User::find($id);
-        if (!$data['user'])
-            return redirect('/');
+        $data = [
+            'user' => $request->user(),
+        ];
 
-        if ($request->user() && $data['user']->id == $request->user()->id) {
-            $data['author'] = true;
-        } else {
-            $data['author'] = null;
-        }
-
-        $data['id'] = $data['user']->id;
-        $data['comments_count'] = $data['user']->comments->count();
-        $data['posts_count'] = Post::withCount('author')->get()->where("author_id", $data['user']->id)->count();
-        $data['latest_posts'] = $data['user']->posts->where('active')->take(5);
-        $data['latest_comments'] = $data['user']->comments;
-        return view('admin.profile')->with('user', $data);
+        return $this->userService->profile($id, $data);
     }
 
     public function logout()
