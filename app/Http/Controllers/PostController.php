@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\PostFormRequest;
 use App\Services\PostService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 
 class PostController extends Controller
@@ -32,10 +34,19 @@ class PostController extends Controller
         $data = [
             'id' => $request->user()->id,
             'title' => $request->input('title'),
-            'body' => $request->input('body '),
+            'body' => $request->input('body'),
         ];
 
-        return $this->postService->store($data);
+        $validator = Validator::make($data, [
+            'title' => 'required|unique:posts|max:255',
+            'body' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect('new-post')->withErrors('Title already exist or something else')->withInput();
+        }else{
+            return $this->postService->store($data);
+        }
     }
 
     public function show($slug)
@@ -55,6 +66,7 @@ class PostController extends Controller
 
     public function update(Request $request)
     {
+
         $data = [
             'id' => $request->user()->id,
             'isAdmin' => $request->user()->isAdmin(),
@@ -62,7 +74,19 @@ class PostController extends Controller
             'body' => $request->input('body'),
         ];
 
-        return $this->postService->update($request->input('post_id'), $data);
+        $slug = Str::slug($data['title']);
+
+        $validator = Validator::make($data, [
+            'title' => 'required|unique:posts|max:255',
+            'body' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect('edit/' . $slug)->withErrors('Title already exist or something else')->withInput();
+        } else {
+            $this->postService->update($request->input('post_id'), $data);
+            return redirect('home')->with('message', 'Post updated successfully');
+        }
     }
 
     public function destroy(Request $request, $id)

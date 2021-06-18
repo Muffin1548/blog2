@@ -7,20 +7,21 @@ use App\Models\Post;
 
 class PostRepository
 {
-    public function index()
+    public function list(int $paginate)
     {
         return Post::where('active', 1)
             ->orderBy('created_at', 'desc')
-            ->paginate(5);
+            ->paginate($paginate);
     }
 
-    public function show($slug)
+    public function findPostBySlug($slug)
     {
         return Post::where('slug', $slug)->first();
     }
 
-    public function post($post_id)
+    public function findPostById($id)
     {
-        return Post::find($post_id);
+        return Post::find($id);
     }
+
 }

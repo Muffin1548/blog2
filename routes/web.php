@@ -39,8 +39,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('update', [PostController::class, 'update']);
     // delete post
     Route::get('delete/{id}', [PostController::class, 'destroy']);
-    // display user's all posts
-    Route::get('my-all-posts', [UserController::class, 'userPostsAll']);
     // add comment
     Route::post('comment/add', [CommentController::class, 'store']);
 });
