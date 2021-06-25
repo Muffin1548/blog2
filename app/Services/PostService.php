@@ -17,12 +17,15 @@ class PostService
         $this->postRepository = new PostRepository();
     }
 
-    public function index()
+    public function index(): array
     {
         $posts = $this->postRepository->list(5);
         $title = 'Latest posts';
 
-        return view('home', compact('posts', 'title'));
+        return array(
+            'posts' => $posts,
+            'title' => $title,
+        );
     }
 
     public function store(array $data)
@@ -35,25 +38,28 @@ class PostService
         $post->author_id = $data['id'];
         $post->active = 1;
 
-        $post->save();
+        return $post->save();
 
-        return redirect('home')->with('message', 'Post published successfully');
     }
 
-    public function show(string $slug)
+    public function show(string $slug): array
     {
         $post = $this->postRepository->findPostBySlug($slug);
         $comments = $post->comments;
 
-        return view('posts.show', compact('post', 'comments'));
+        return array(
+            'post' => $post,
+            'comments' => $comments
+        );
     }
 
     public function edit(array $data, $slug)
     {
         $post = $this->postRepository->findPostBySlug($slug);
-        if ($post && ($data['id'] == $post->author_id || $data['isAdmin']))
-            return view('posts.edit')->with('post', $post);
-        return redirect('/')->withErrors('you have not sufficient permissions');
+        if ($post && ($data['id'] == $post->author_id || $data['isAdmin'])) {
+            return $post;
+        }else
+            return false;
     }
 
     public function update(int $postId, array $data): bool
@@ -63,37 +69,30 @@ class PostService
         if ($post && ($post->author_id == $data['id'] || $data['isAdmin'])) {
             $title = $data['title'];
             $slug = Str::slug($title);
-            $post->slug = $slug;
-            $post->title = $title;
-            $post->body = $data['body'];
-            $post->active = 1;
+            $post['slug'] = $slug;
+            $post['title'] = $title;
+            $post['body'] = $data['body'];
+            $post['active']= 1;
 
-            $post->save();
-
-            return true;
+            return $this->postRepository->savePost($post);
         } else {
             return false;
         }
     }
 
-    public function destroy(array $data, $id)
+    public function destroy(array $data, $id): string
     {
         $post = $this->postRepository->findPostById($id);
         if ($post && ($post->author_id == $data['id'] || $data['isAdmin'])) {
             $post->delete();
-            $data['message'] = 'Post deleted Successfully';
+            return $data['message'] = 'Post deleted Successfully';
         } else {
-            $data['errors'] = 'Invalid Operation. You have not sufficient permissions';
+            return $data['errors'] = 'Invalid Operation. You have not sufficient permissions';
         }
-        return redirect('/')->with($data);
     }
 
-    public function create(bool $canPost)
+    public function create(bool $canPost): bool
     {
-        if ($canPost) {
-            return view('posts.create');
-        } else {
-            return redirect('/')->withErrors('You have not sufficient permissions for writing post');
-        }
+        return $canPost;
     }
 }

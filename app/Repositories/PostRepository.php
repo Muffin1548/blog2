@@ -24,4 +24,9 @@ class PostRepository
         return Post::find($id);
     }
 
+    public function savePost(Post $post): bool
+    {
+        return $post->save();
+    }
+
 }

@@ -18,15 +18,26 @@ class PostController extends Controller
         $this->postService = new PostService();
     }
 
-    public function index(): string
+    public function index()
     {
-        return $this->postService->index();
+        $data = $this->postService->index();
+
+
+        $posts = $data['posts'];
+        $title = $data['title'];
+
+        return view('home', compact('posts', 'title'));
     }
 
     public function create(Request $request)
     {
         $canPost = $request->user()->canPost();
-        return $this->postService->create($canPost);
+
+        if ($this->postService->create($canPost)) {
+            return view('posts.create');
+        } else {
+            return redirect('/')->withErrors('You have not sufficient permissions for writing post');
+        }
     }
 
     public function store(PostFormRequest $request)
@@ -44,14 +55,21 @@ class PostController extends Controller
 
         if ($validator->fails()) {
             return redirect('new-post')->withErrors('Title already exist or something else')->withInput();
-        }else{
-            return $this->postService->store($data);
+        } else {
+            $this->postService->store($data);
+            return redirect('home')->with('message', 'Post published successfully');
         }
+
     }
 
     public function show($slug)
     {
-        return $this->postService->show($slug);
+        $data = $this->postService->show($slug);
+
+        $post = $data['post'];
+        $comments = $data['comments'];
+
+        return view('posts.show', compact('post', 'comments'));
     }
 
     public function edit(Request $request, $slug)
@@ -61,7 +79,9 @@ class PostController extends Controller
             'isAdmin' => $request->user()->isAdmin(),
         ];
 
-        return $this->postService->edit($data, $slug);
+        $post = $this->postService->edit($data, $slug);
+
+        return view('posts.edit')->with('post', $post);
     }
 
     public function update(Request $request)
@@ -96,6 +116,8 @@ class PostController extends Controller
             'isAdmin' => $request->user()->isAdmin(),
         ];
 
-        return $this->postService->destroy($data, $id);
+        $this->postService->destroy($data, $id);
+
+        return redirect('/')->with($data);
     }
 }
